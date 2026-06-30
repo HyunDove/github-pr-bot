@@ -15,6 +15,9 @@ def _verify_signature(payload: bytes, signature: str) -> bool:
         return True
     mac = hmac.new(GITHUB_WEBHOOK_SECRET.encode(), payload, hashlib.sha256)
     expected = "sha256=" + mac.hexdigest()
+    print(f"[SIG] received={signature!r}")
+    print(f"[SIG] expected={expected!r}")
+    print(f"[SIG] secret={GITHUB_WEBHOOK_SECRET!r}")
     return hmac.compare_digest(expected, signature)
 
 
