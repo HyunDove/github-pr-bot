@@ -1,6 +1,10 @@
 import json
+import sys
 import time
 from pathlib import Path
+
+# Windows 콘솔 UTF-8 출력
+sys.stdout.reconfigure(encoding="utf-8")
 
 from config import DISCORD_BOT_TOKEN, DISCORD_CHANNEL_ID, GITHUB_REPO, POLL_INTERVAL
 from discord_notify import build_message, send_message
@@ -22,6 +26,7 @@ def save_reviewed(reviewed: set):
 
 def handle_pr(pr: dict, reviewed: set):
     pr_number = pr["number"]
+    pr_url = pr["url"]
 
     try:
         print(f"[Bot] PR #{pr_number} 리뷰 시작: {pr['title']}")
@@ -35,17 +40,27 @@ def handle_pr(pr: dict, reviewed: set):
         )
 
         post_pr_comment(GITHUB_REPO, pr_number, review["review_comment"])
+        print(f"[Bot] PR #{pr_number} 코멘트 등록 완료")
 
         issue_urls = []
         for issue in review.get("issues", []):
             if issue.get("create_github_issue"):
-                pr_url = pr["url"]
+                problem  = issue.get("problem", "")
+                cause    = issue.get("cause", "")
+                solution = issue.get("solution", "")
+                body = (
+                    f"## 문제\n{problem}\n\n"
+                    f"## 원인\n{cause}\n\n"
+                    f"## 해결 방법\n{solution}\n\n"
+                    f"---\nPR #{pr_number}: {pr_url}"
+                )
                 url = create_issue(
                     repo=GITHUB_REPO,
                     title=f"[PR #{pr_number}] {issue['title']}",
-                    body=f"PR #{pr_number} 리뷰 중 발견\n\n{issue['description']}\n\n{pr_url}",
+                    body=body,
                 )
                 issue_urls.append(url)
+                print(f"[Bot] 이슈 등록: {url}")
 
         if review.get("status") == "approved":
             try:
