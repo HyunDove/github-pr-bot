@@ -5,7 +5,7 @@ import subprocess
 def get_open_prs(repo: str) -> list:
     result = subprocess.run(
         ["gh", "pr", "list", "--repo", repo, "--state", "open",
-         "--json", "number,title,author,body,url"],
+         "--json", "number,title,author,body,url,headRefOid"],
         capture_output=True, text=True, check=True, encoding="utf-8",
     )
     return json.loads(result.stdout)
@@ -26,13 +26,22 @@ def post_pr_comment(repo: str, pr_number: int, body: str):
     )
 
 
-def create_issue(repo: str, title: str, body: str) -> str:
+def create_issue(repo: str, title: str, body: str) -> tuple:
     result = subprocess.run(
         ["gh", "issue", "create", "--repo", repo,
          "--title", title, "--body", body, "--label", "bug"],
         capture_output=True, text=True, check=True, encoding="utf-8",
     )
-    return result.stdout.strip()
+    url = result.stdout.strip()
+    number = int(url.rstrip("/").split("/")[-1])
+    return url, number
+
+
+def close_issue(repo: str, issue_number: int):
+    subprocess.run(
+        ["gh", "issue", "close", str(issue_number), "--repo", repo],
+        check=True,
+    )
 
 
 def merge_pr(repo: str, pr_number: int):
