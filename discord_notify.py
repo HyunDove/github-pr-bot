@@ -12,24 +12,37 @@ def build_message(pr: dict, review: dict, issue_urls: list) -> str:
 
     lines = [
         f"{status_emoji} **PR #{pr_number} {status_text}**",
-        f"**제목:** {pr_title}",
-        f"**작성자:** {pr_author}",
+        f"📌 **제목:** {pr_title}",
+        f"👤 **작성자:** {pr_author}",
         "",
-        "**요약**",
+        "📋 **리뷰 요약**",
         review["summary"],
     ]
 
-    severity_emoji = {"critical": "🔴", "warning": "🟡", "info": "🔵"}
+    severity_map = {
+        "critical": ("🔴", "치명적"),
+        "warning":  ("🟡", "경고"),
+        "info":     ("🔵", "정보"),
+    }
+
     issues = review.get("issues", [])
     if issues:
-        lines += ["", "**발견된 이슈**"]
+        lines += ["", f"⚠️ **발견된 이슈 ({len(issues)}건)**", "━━━━━━━━━━━━━━━━━━━"]
         for issue in issues:
-            emoji = severity_emoji.get(issue["severity"], "⚪")
+            emoji, label = severity_map.get(issue["severity"], ("⚪", "기타"))
             issue_title = issue["title"]
-            lines.append(f"{emoji} {issue_title}")
+            lines.append(f"{emoji} **[{label}] {issue_title}**")
+            if issue.get("problem"):
+                lines.append(f"❓ **문제:** {issue['problem']}")
+            if issue.get("cause"):
+                lines.append(f"💡 **원인:** {issue['cause']}")
+            if issue.get("solution"):
+                lines.append(f"🔧 **해결:** {issue['solution']}")
+            lines.append("")
+        lines.append("━━━━━━━━━━━━━━━━━━━")
 
     if issue_urls:
-        lines += ["", "**등록된 GitHub 이슈**"]
+        lines += ["", "📌 **등록된 GitHub 이슈**"]
         for url in issue_urls:
             lines.append(f"• {url}")
 

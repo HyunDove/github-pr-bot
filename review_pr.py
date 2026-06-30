@@ -1,4 +1,4 @@
-﻿import subprocess
+import subprocess
 import json
 import re
 
@@ -20,11 +20,13 @@ PROMPT_TEMPLATE = """당신은 엄격한 코드 리뷰어입니다. PR의 변경
     {{
       "severity": "critical 또는 warning 또는 info",
       "title": "이슈 제목",
-      "description": "구체적인 설명과 수정 방법",
+      "problem": "어떤 문제가 있는지 1문장",
+      "cause": "왜 문제가 발생하는지 1문장",
+      "solution": "구체적인 해결 방법 (코드 예시 포함)",
       "create_github_issue": true
     }}
   ],
-  "review_comment": "PR에 남길 마크다운 코멘트"
+  "review_comment": "PR에 남길 마크다운 코멘트 (문제/원인/해결방법 포함)"
 }}
 
 ## 판단 기준
