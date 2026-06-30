@@ -1,4 +1,14 @@
+import json
 import subprocess
+
+
+def get_open_prs(repo: str) -> list:
+    result = subprocess.run(
+        ["gh", "pr", "list", "--repo", repo, "--state", "open",
+         "--json", "number,title,author,body,url"],
+        capture_output=True, text=True, check=True, encoding="utf-8",
+    )
+    return json.loads(result.stdout)
 
 
 def get_pr_diff(repo: str, pr_number: int) -> str:
