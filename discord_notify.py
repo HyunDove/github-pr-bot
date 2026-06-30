@@ -1,4 +1,7 @@
-﻿def build_message(pr: dict, review: dict, issue_urls: list) -> str:
+import requests
+
+
+def build_message(pr: dict, review: dict, issue_urls: list) -> str:
     is_approved = review["status"] == "approved"
     status_emoji = "✅" if is_approved else "❌"
     status_text = "승인" if is_approved else "반려"
@@ -8,7 +11,7 @@
         f"**제목:** {pr['title']}",
         f"**작성자:** {pr['user']['login']}",
         "",
-        f"**요약**",
+        "**요약**",
         review["summary"],
     ]
 
@@ -31,3 +34,8 @@
     if len(message) > 1990:
         message = message[:1990] + "..."
     return message
+
+
+def send_message(webhook_url: str, message: str):
+    resp = requests.post(webhook_url, json={"content": message}, timeout=10)
+    resp.raise_for_status()

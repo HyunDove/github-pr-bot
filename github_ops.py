@@ -1,4 +1,4 @@
-﻿import subprocess
+import subprocess
 
 
 def get_pr_diff(repo: str, pr_number: int) -> str:
@@ -23,3 +23,10 @@ def create_issue(repo: str, title: str, body: str) -> str:
         capture_output=True, text=True, check=True, encoding="utf-8",
     )
     return result.stdout.strip()
+
+
+def merge_pr(repo: str, pr_number: int):
+    subprocess.run(
+        ["gh", "pr", "merge", str(pr_number), "--repo", repo, "--merge"],
+        check=True,
+    )

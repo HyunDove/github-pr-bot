@@ -1,21 +1,12 @@
-﻿import asyncio
 import threading
 
-import discord
+from flask import Flask
 
-from config import DISCORD_BOT_TOKEN, DISCORD_CHANNEL_ID, PORT
-from webhook_server import create_app, set_discord
-
-intents = discord.Intents.default()
-client = discord.Client(intents=intents)
+from config import DISCORD_BOT_TOKEN, PORT
+from webhook_server import create_app
 
 
-@client.event
-async def on_ready():
-    print(f"[Discord] 봇 로그인: {client.user}")
-    loop = asyncio.get_event_loop()
-    set_discord(client, loop, DISCORD_CHANNEL_ID)
-
+def main():
     app = create_app()
     flask_thread = threading.Thread(
         target=lambda: app.run(host="0.0.0.0", port=PORT, use_reloader=False),
@@ -24,6 +15,8 @@ async def on_ready():
     flask_thread.start()
     print(f"[Webhook] 서버 시작: http://0.0.0.0:{PORT}/webhook")
     print("[Bot] PR 감지 대기 중...")
+    flask_thread.join()
 
 
-client.run(DISCORD_BOT_TOKEN)
+if __name__ == "__main__":
+    main()
