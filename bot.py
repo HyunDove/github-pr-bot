@@ -2,7 +2,7 @@ import json
 import time
 from pathlib import Path
 
-from config import DISCORD_WEBHOOK_URL, GITHUB_REPO, POLL_INTERVAL
+from config import DISCORD_BOT_TOKEN, DISCORD_CHANNEL_ID, GITHUB_REPO, POLL_INTERVAL
 from discord_notify import build_message, send_message
 from github_ops import create_issue, get_open_prs, get_pr_diff, merge_pr, post_pr_comment
 from review_pr import review_pr
@@ -39,10 +39,11 @@ def handle_pr(pr: dict, reviewed: set):
         issue_urls = []
         for issue in review.get("issues", []):
             if issue.get("create_github_issue"):
+                pr_url = pr["url"]
                 url = create_issue(
                     repo=GITHUB_REPO,
                     title=f"[PR #{pr_number}] {issue['title']}",
-                    body=f"PR #{pr_number} 리뷰 중 발견\n\n{issue['description']}\n\n{pr['url']}",
+                    body=f"PR #{pr_number} 리뷰 중 발견\n\n{issue['description']}\n\n{pr_url}",
                 )
                 issue_urls.append(url)
 
@@ -61,8 +62,8 @@ def handle_pr(pr: dict, reviewed: set):
         }
         message = build_message(pr_for_message, review, issue_urls)
 
-        if DISCORD_WEBHOOK_URL:
-            send_message(DISCORD_WEBHOOK_URL, message)
+        if DISCORD_BOT_TOKEN and DISCORD_CHANNEL_ID:
+            send_message(DISCORD_BOT_TOKEN, DISCORD_CHANNEL_ID, message)
             print(f"[Discord] PR #{pr_number} 알림 전송 완료")
 
         reviewed.add(pr_number)
@@ -78,7 +79,7 @@ def main():
         print("[ERROR] .env에 GITHUB_REPO가 설정되지 않았습니다.")
         return
 
-    print(f"[Bot] 폴링 시작 — {GITHUB_REPO} ({POLL_INTERVAL}초 간격)")
+    print(f"[Bot] 폴링 시작 - {GITHUB_REPO} ({POLL_INTERVAL}초 간격)")
     reviewed = load_reviewed()
     print(f"[Bot] 이미 리뷰된 PR: {reviewed}")
 
