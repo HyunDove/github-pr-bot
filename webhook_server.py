@@ -1,24 +1,13 @@
-﻿import hashlib
+import hashlib
 import hmac
 import threading
 
 from flask import Flask, abort, request
 
-from config import GITHUB_WEBHOOK_SECRET, PORT
-from discord_notify import build_message
-from github_ops import create_issue, get_pr_diff, post_pr_comment
+from config import DISCORD_WEBHOOK_URL, GITHUB_WEBHOOK_SECRET
+from discord_notify import build_message, send_message
+from github_ops import create_issue, get_pr_diff, merge_pr, post_pr_comment
 from review_pr import review_pr
-
-_discord_client = None
-_event_loop = None
-_channel_id = None
-
-
-def set_discord(client, loop, channel_id):
-    global _discord_client, _event_loop, _channel_id
-    _discord_client = client
-    _event_loop = loop
-    _channel_id = channel_id
 
 
 def _verify_signature(payload: bytes, signature: str) -> bool:
@@ -30,8 +19,6 @@ def _verify_signature(payload: bytes, signature: str) -> bool:
 
 
 def _handle_pr(payload: dict):
-    import asyncio
-
     pr = payload["pull_request"]
     repo = payload["repository"]["full_name"]
     pr_number = pr["number"]
@@ -57,15 +44,21 @@ def _handle_pr(payload: dict):
                 )
                 issue_urls.append(url)
 
+        if review.get("status") == "approved":
+            try:
+                merge_pr(repo, pr_number)
+                print(f"[Bot] PR #{pr_number} 자동 머지 완료")
+            except Exception as e:
+                print(f"[ERROR] 머지 실패: {e}")
+
         message = build_message(pr, review, issue_urls)
 
-        if _discord_client and _event_loop and _channel_id:
-            async def _send():
-                channel = _discord_client.get_channel(_channel_id)
-                if channel:
-                    await channel.send(message)
-
-            asyncio.run_coroutine_threadsafe(_send(), _event_loop)
+        if DISCORD_WEBHOOK_URL:
+            try:
+                send_message(DISCORD_WEBHOOK_URL, message)
+                print(f"[Discord] 메시지 전송 완료")
+            except Exception as e:
+                print(f"[ERROR] Discord 메시지 전송 실패: {e}")
 
     except Exception as e:
         print(f"[ERROR] PR 처리 실패: {e}")
@@ -73,6 +66,10 @@ def _handle_pr(payload: dict):
 
 def create_app() -> Flask:
     app = Flask(__name__)
+
+    @app.route("/health", methods=["GET"])
+    def health():
+        return "OK", 200
 
     @app.route("/webhook", methods=["POST"])
     def webhook():
